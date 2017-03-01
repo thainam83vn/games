@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 2</title>
+    <script type="text/javascript" src="../libs/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {
+            preload: preload,
+            create: create,
+            update: update
+        });
+
+        var EXPLOSION_SIZE = {
+            Width: 64,
+            Height: 64
+        };
+
+        var player;
+        var platforms;
+        var bombs;
+        var explosions;
+        var cursors;
+        var jumpButton;
+        var timer;
+        var textHealth;
+        var health = 10;
+
+        var numBall = 1;
+
+        function preload() {
+
+            game.stage.backgroundColor = '#85b5e1';
+
+            game.load.baseURL = 'https://examples.phaser.io/assets/';
+            game.load.crossOrigin = 'anonymous';
+
+            game.load.image('player', 'sprites/phaser-dude.png');
+            game.load.image('platform', 'sprites/platform.png');
+            game.load.image('bomb', 'sprites/red_ball.png');
+            game.load.atlasJSONHash('seacreatures', 'sprites/seacreatures_json.png', 'sprites/seacreatures_json.json');
+            game.load.spritesheet('explosion', 'sprites/explosion.png', EXPLOSION_SIZE.Width, EXPLOSION_SIZE.Height);
+
+        }
+
+
+
+        function updateBall() {
+            for (var i = 0; i < numBall; i++) {
+                createBall();
+            }
+            bombs.setAll('body.gravity.y', 500);
+        }
+
+        function createBall() {
+            var x = game.rnd.integerInRange(100, 700);
+            bombs.create(x, 0, 'bomb');
+        }
+
+        function createHealth() {
+            textHealth = game.add.text(50, 50, 'health', {
+                font: '20px Arial'
+            });
+            textHealth.fixToCamera = true;
+        }
+
+        function updateHealth() {
+            textHealth.setText('life: ' + health);
+        }
+
+        function createBot() {
+            var bot = game.add.sprite(200, 200, 'seacreatures');
+            bot.animations.add('swim', Phaser.Animation.generateFrameNames('crab', 10000, 10025, '', 5), 30, true);
+            bot.animations.play('swim', 15, true);
+            game.physics.arcade.enable(bot);
+            bot.body.collideWorldBounds = true;
+            bot.body.gravity.y = 500;
+            return bot;
+        }
+
+        function create() {
+            player = createBot();
+            createHealth();
+            updateHealth();
+
+            bombs = game.add.physicsGroup();
+            explosions = game.add.physicsGroup();
+
+            platforms = game.add.physicsGroup();
+            platforms.create(500, 150, 'platform');
+            platforms.create(-200, 300, 'platform');
+            platforms.create(400, 450, 'platform');
+            platforms.setAll('body.immovable', true);
+
+
+
+            cursors = game.input.keyboard.createCursorKeys();
+            jumpButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+            timer = game.time.create(false);
+            timer.loop(500, updateBall, this);
+            timer.start();
+        }
+
+
+
+        function onCollidePlayerBomb(p, ball) {
+            killBall(ball);
+            health--;
+            if (health <= 0)
+                gameover();
+        }
+
+        function onCollidePlatformBomb(p, ball) {
+            killBall(ball);
+        }
+
+        function killBall(ball) {
+            var explosion = explosions.create(ball.x - EXPLOSION_SIZE.Width / 2, ball.y - EXPLOSION_SIZE.Height / 2, 'explosion');
+            explosion.animations.add('boom', null, 30, true);
+            explosion.animations.play('boom', 15, false);
+            setTimeout(() => {
+                explosion.kill();
+            }, 1000);
+            ball.kill();
+        }
+
+        function update() {
+            game.physics.arcade.collide(player, platforms);
+            game.physics.arcade.collide(platforms, bombs, onCollidePlatformBomb);
+            var collide = game.physics.arcade.collide(player, bombs, onCollidePlayerBomb);
+
+            player.body.velocity.x = 0;
+
+            if (cursors.left.isDown) {
+                player.body.velocity.x = -250;
+            } else if (cursors.right.isDown) {
+                player.body.velocity.x = 250;
+            }
+
+            if (jumpButton.isDown && (player.body.onFloor() || player.body.touching.down)) {
+                player.body.velocity.y = -400;
+            }
+
+            updateHealth();
+        }
+
+
+        function gameover() {
+            player.kill();
+            var dieText = game.add.text(game.camera.width / 2, game.camera.height / 2, 'Score: 0', {
+                font: '48px Arial'
+            });
+            dieText.fixToCamera = false;
+            dieText.setText('You died');
+        }
+
+        function render() {
+
+        }
+    </script>
+
+</body>
+
+</html>
