@@ -30,6 +30,8 @@
         var platforms;
         var bombs;
         var explosions;
+        var victim;
+
         var cursors;
         var jumpButton;
         var timer;
@@ -64,7 +66,8 @@
 
         function createBall() {
             var x = game.rnd.integerInRange(100, 700);
-            bombs.create(x, 0, 'bomb');
+            var bomb = bombs.create(x, 0, 'bomb');
+            //bomb.body.collideWorldBounds = true;
         }
 
         function createHealth() {
@@ -79,8 +82,18 @@
         }
 
         function createBot() {
-            var bot = game.add.sprite(200, 200, 'seacreatures');
+            var bot = game.add.sprite(700, 800, 'seacreatures');
             bot.animations.add('swim', Phaser.Animation.generateFrameNames('crab', 10000, 10025, '', 5), 30, true);
+            bot.animations.play('swim', 15, true);
+            game.physics.arcade.enable(bot);
+            bot.body.collideWorldBounds = true;
+            bot.body.gravity.y = 500;
+            return bot;
+        }
+
+        function createVictim() {
+            var bot = game.add.sprite(700, -400, 'seacreatures');
+            bot.animations.add('swim', Phaser.Animation.generateFrameNames('seahorse', 0, 5, '', 4), 30, true);
             bot.animations.play('swim', 15, true);
             game.physics.arcade.enable(bot);
             bot.body.collideWorldBounds = true;
@@ -95,6 +108,8 @@
 
             bombs = game.add.physicsGroup();
             explosions = game.add.physicsGroup();
+
+            victim = createVictim();
 
             platforms = game.add.physicsGroup();
             platforms.create(500, 150, 'platform');
@@ -125,6 +140,10 @@
             killBall(ball);
         }
 
+        function onCollideVictimPlayer(p, ball) {
+
+        }
+
         function killBall(ball) {
             var explosion = explosions.create(ball.x - EXPLOSION_SIZE.Width / 2, ball.y - EXPLOSION_SIZE.Height / 2, 'explosion');
             explosion.animations.add('boom', null, 30, true);
@@ -136,6 +155,10 @@
         }
 
         function update() {
+            game.physics.arcade.collide(victim, platforms);
+            game.physics.arcade.collide(victim, bombs, onCollidePlatformBomb);
+            game.physics.arcade.collide(victim, player, win);
+
             game.physics.arcade.collide(player, platforms);
             game.physics.arcade.collide(platforms, bombs, onCollidePlatformBomb);
             var collide = game.physics.arcade.collide(player, bombs, onCollidePlayerBomb);
@@ -163,6 +186,14 @@
             });
             dieText.fixToCamera = false;
             dieText.setText('You died');
+        }
+
+        function win() {
+            var dieText = game.add.text(game.camera.width / 2, game.camera.height / 2, 'Score: 0', {
+                font: '48px Arial'
+            });
+            dieText.fixToCamera = false;
+            dieText.setText('You won!!!!');
         }
 
         function render() {
